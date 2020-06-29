@@ -33,8 +33,8 @@ namespace ChatServerSignalR.Hubs
         public async Task NewConnectionAdded(string user)
         {
             await Clients.AllExcept(Context.ConnectionId).SendAsync("ReceiveMessage", "Server", user + " has joined the chat!");
+            if(currentChatUsers.ContainsKey(user))  currentChatUsers.Remove(user);
             currentChatUsers.Add(user, new ConnectedUser { connectionId = Context.ConnectionId, userState = UserStatesConst.USER_AVAILABLE });
-           
         }
         public async Task ShowMessageHistory(string user)
         {
@@ -51,15 +51,19 @@ namespace ChatServerSignalR.Hubs
             await Clients.Client(currentChatUsers[challengedUser].connectionId).SendAsync("ReceiveGameRequest", currentUser, nRounds);
         }
 
+       
+
         public async Task AcceptGameRequest(int nRounds, string challengedUser, string currentUser)
         {
-            //Send invitation to challengedUser
-            //Set both users state to playing and send both play game code 
             currentChatUsers[currentUser].userState = UserStatesConst.USER_PLAYING;
             currentChatUsers[challengedUser].userState = UserStatesConst.USER_PLAYING;
             await Clients.Client(currentChatUsers[currentUser].connectionId).SendAsync("ReceiveGameCode", GameConstants.USER_ACCEPTED, nRounds);
             await Clients.Client(currentChatUsers[challengedUser].connectionId).SendAsync("ReceiveGameCode", GameConstants.USER_ACCEPTED, nRounds);
 
+        }
+        public async Task SendUsersPick(int sendersPick, string nextUsername)
+        {
+            await Clients.Client(currentChatUsers[nextUsername].connectionId).SendAsync("ReceiveRivalsPick", sendersPick);
         }
         public string GetConnectionId()
         {
